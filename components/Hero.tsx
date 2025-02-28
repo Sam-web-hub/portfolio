@@ -2,6 +2,9 @@
 
 import React from 'react'
 import { Spotlight } from './ui/Spotlight'
+import { TextGenerateEffect } from './ui/TextGenerateEffect'
+import { MagicButton } from './ui/MagicButton'
+import { FaLocationArrow } from 'react-icons/fa'
 
 const Hero = () => {
   return (
@@ -20,6 +23,20 @@ const Hero = () => {
           <h2 className='uppercase tracking-widest text-xs text-center text-blue-100 max-w-80'>
             hello
           </h2>
+          <TextGenerateEffect
+            className='text-center text-[40px] md:text-5xl lg:text-7xl'
+            words='Generate stunning text effects with ease' 
+            />
+            <p className='text-center md:tracking-wider mb-4 text-sm md:text-lg lg:text-2xl'>
+              Hi I am a text effect generator
+            </p>
+            <a href='#about' aria-label='learn more'>
+              <MagicButton
+              title='learn more'
+              icon={<FaLocationArrow />}
+              position='right'
+              />
+            </a>
         </div>
       </div>
     </div>
