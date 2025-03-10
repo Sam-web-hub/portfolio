@@ -73,7 +73,7 @@ export function Globe({ globeConfig, data }: WorldProps) {
       }[]
     | null
   >(null);
-
+  const [ready, setReady] = useState(false);
   const globeRef = useRef<ThreeGlobe | null>(null);
 
   const defaultProps = {
@@ -93,12 +93,52 @@ export function Globe({ globeConfig, data }: WorldProps) {
     ...globeConfig,
   };
 
+  // Validate data to ensure no NaN values
+  const validateData = (inputData: Position[]) => {
+    return inputData.filter((item) => {
+      // Check if any coordinate is NaN, undefined, or null
+      if (
+        isNaN(item.startLat) ||
+        isNaN(item.startLng) ||
+        isNaN(item.endLat) ||
+        isNaN(item.endLng) ||
+        isNaN(item.arcAlt) ||
+        item.startLat === undefined ||
+        item.startLng === undefined ||
+        item.endLat === undefined ||
+        item.endLng === undefined ||
+        item.arcAlt === undefined
+      ) {
+        console.warn("Found invalid coordinate data:", item);
+        return false;
+      }
+      return true;
+    });
+  };
+
   useEffect(() => {
-    if (globeRef.current) {
-      _buildData();
+    // Initialize globe with empty data
+    if (!globeRef.current) {
+      const globe = new ThreeGlobe()
+        .hexPolygonsData([])
+        .pointsData([])
+        .arcsData([]);
+
+      globeRef.current = globe;
       _buildMaterial();
     }
-  }, [globeRef.current]);
+  }, []);
+
+  useEffect(() => {
+    if (globeRef.current && data && data.length > 0) {
+      const validData = validateData(data);
+      if (validData.length > 0) {
+        _buildData(validData);
+      } else {
+        console.error("No valid data points found for the globe");
+      }
+    }
+  }, [data]);
 
   const _buildMaterial = () => {
     if (!globeRef.current) return;
@@ -109,18 +149,28 @@ export function Globe({ globeConfig, data }: WorldProps) {
       emissiveIntensity: number;
       shininess: number;
     };
-    globeMaterial.color = new Color(globeConfig.globeColor);
-    globeMaterial.emissive = new Color(globeConfig.emissive);
-    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || 0.1;
-    globeMaterial.shininess = globeConfig.shininess || 0.9;
+    globeMaterial.color = new Color(
+      globeConfig.globeColor || defaultProps.globeColor
+    );
+    globeMaterial.emissive = new Color(
+      globeConfig.emissive || defaultProps.emissive
+    );
+    globeMaterial.emissiveIntensity =
+      globeConfig.emissiveIntensity || defaultProps.emissiveIntensity;
+    globeMaterial.shininess = globeConfig.shininess || defaultProps.shininess;
   };
 
-  const _buildData = () => {
-    const arcs = data;
+  const _buildData = (validData: Position[]) => {
     let points = [];
-    for (let i = 0; i < arcs.length; i++) {
-      const arc = arcs[i];
+    for (let i = 0; i < validData.length; i++) {
+      const arc = validData[i];
       const rgb = hexToRgb(arc.color) as { r: number; g: number; b: number };
+
+      if (!rgb) {
+        console.warn("Invalid color format:", arc.color);
+        continue;
+      }
+
       points.push({
         size: defaultProps.pointSize,
         order: arc.order,
@@ -151,84 +201,128 @@ export function Globe({ globeConfig, data }: WorldProps) {
   };
 
   useEffect(() => {
-    if (globeRef.current && globeData) {
-      globeRef.current
-        .hexPolygonsData(countries.features)
-        .hexPolygonResolution(3)
-        .hexPolygonMargin(0.7)
-        .showAtmosphere(defaultProps.showAtmosphere)
-        .atmosphereColor(defaultProps.atmosphereColor)
-        .atmosphereAltitude(defaultProps.atmosphereAltitude)
-        .hexPolygonColor((e) => {
-          return defaultProps.polygonColor;
-        });
-      startAnimation();
+    if (globeRef.current && globeData && globeData.length > 0) {
+      try {
+        globeRef.current
+          .hexPolygonsData(countries.features)
+          .hexPolygonResolution(3)
+          .hexPolygonMargin(0.7)
+          .showAtmosphere(defaultProps.showAtmosphere)
+          .atmosphereColor(defaultProps.atmosphereColor)
+          .atmosphereAltitude(defaultProps.atmosphereAltitude)
+          .hexPolygonColor(() => defaultProps.polygonColor);
+
+        // Set ready state after initial configuration
+        setReady(true);
+      } catch (error) {
+        console.error("Error configuring globe:", error);
+      }
     }
   }, [globeData]);
 
+  useEffect(() => {
+    if (ready && globeRef.current && globeData && globeData.length > 0) {
+      startAnimation();
+    }
+  }, [ready, globeData]);
+
   const startAnimation = () => {
-    if (!globeRef.current || !globeData) return;
+    if (!globeRef.current || !globeData || globeData.length === 0) return;
 
-    globeRef.current
-      .arcsData(data)
-      .arcStartLat((d) => (d as { startLat: number }).startLat * 1)
-      .arcStartLng((d) => (d as { startLng: number }).startLng * 1)
-      .arcEndLat((d) => (d as { endLat: number }).endLat * 1)
-      .arcEndLng((d) => (d as { endLng: number }).endLng * 1)
-      .arcColor((e: any) => (e as { color: string }).color)
-      .arcAltitude((e) => {
-        return (e as { arcAlt: number }).arcAlt * 1;
-      })
-      .arcStroke((e) => {
-        return [0.32, 0.28, 0.3][Math.round(Math.random() * 2)];
-      })
-      .arcDashLength(defaultProps.arcLength)
-      .arcDashInitialGap((e) => (e as { order: number }).order * 1)
-      .arcDashGap(15)
-      .arcDashAnimateTime((e) => defaultProps.arcTime);
+    try {
+      const validData = validateData(data);
 
-    globeRef.current
-      .pointsData(data)
-      .pointColor((e) => (e as { color: string }).color)
-      .pointsMerge(true)
-      .pointAltitude(0.0)
-      .pointRadius(2);
+      globeRef.current
+        .arcsData(validData)
+        .arcStartLat((d) => {
+          const val = (d as { startLat: number }).startLat * 1;
+          return isNaN(val) ? 0 : val;
+        })
+        .arcStartLng((d) => {
+          const val = (d as { startLng: number }).startLng * 1;
+          return isNaN(val) ? 0 : val;
+        })
+        .arcEndLat((d) => {
+          const val = (d as { endLat: number }).endLat * 1;
+          return isNaN(val) ? 0 : val;
+        })
+        .arcEndLng((d) => {
+          const val = (d as { endLng: number }).endLng * 1;
+          return isNaN(val) ? 0 : val;
+        })
+        .arcColor((e: any) => (e as { color: string }).color)
+        .arcAltitude((e) => {
+          const val = (e as { arcAlt: number })?.arcAlt * 1;
+          return isNaN(val) ? 0.1 : val;
+        })
+        .arcStroke(() => {
+          return [0.32, 0.28, 0.3][Math.round(Math.random() * 2)];
+        })
+        .arcDashLength(defaultProps.arcLength)
+        .arcDashInitialGap((e) => {
+          const val = (e as { order: number }).order * 1;
+          return isNaN(val) ? 0 : val;
+        })
+        .arcDashGap(15)
+        .arcDashAnimateTime(() => defaultProps.arcTime);
 
-    globeRef.current
-      .ringsData([])
-      .ringColor((e: any) => (t: any) => e.color(t))
-      .ringMaxRadius(defaultProps.maxRings)
-      .ringPropagationSpeed(RING_PROPAGATION_SPEED)
-      .ringRepeatPeriod(
-        (defaultProps.arcTime * defaultProps.arcLength) / defaultProps.rings
-      );
+      globeRef.current
+        .pointsData(globeData)
+        .pointColor((e) => (e as { color: (t: number) => string }).color(0))
+        .pointsMerge(true)
+        .pointAltitude(0.0)
+        .pointRadius(2);
+
+      // Initialize rings with empty data first
+      globeRef.current
+        .ringsData([])
+        .ringColor((e: any) => (t: any) => e.color(t))
+        .ringMaxRadius(defaultProps.maxRings)
+        .ringPropagationSpeed(RING_PROPAGATION_SPEED)
+        .ringRepeatPeriod(
+          (defaultProps.arcTime * defaultProps.arcLength) / defaultProps.rings
+        );
+    } catch (error) {
+      console.error("Error in startAnimation:", error);
+    }
   };
 
   useEffect(() => {
-    if (!globeRef.current || !globeData) return;
+    if (!ready || !globeRef.current || !globeData || globeData.length === 0)
+      return;
 
     const interval = setInterval(() => {
       if (!globeRef.current || !globeData) return;
-      numbersOfRings = genRandomNumbers(
-        0,
-        data.length,
-        Math.floor((data.length * 4) / 5)
-      );
+      try {
+        // Generate a safe number of rings
+        const maxItems = Math.min(globeData.length, 100); // Limit to avoid performance issues
+        const ringsCount = Math.floor((maxItems * 4) / 5);
+        numbersOfRings = genRandomNumbers(
+          0,
+          maxItems,
+          ringsCount > 0 ? ringsCount : 1
+        );
 
-      globeRef.current.ringsData(
-        globeData.filter((d, i) => numbersOfRings.includes(i))
-      );
+        // Only use indices that exist in the data
+        const safeRingItems = globeData.filter((_, i) =>
+          numbersOfRings.includes(i)
+        );
+
+        if (safeRingItems.length > 0) {
+          globeRef.current.ringsData(safeRingItems);
+        }
+      } catch (error) {
+        console.error("Error updating rings:", error);
+      }
     }, 2000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [globeRef.current, globeData]);
+  }, [ready, globeData]);
 
   return (
-    <>
-      <threeGlobe ref={globeRef} />
-    </>
+    <>{globeRef.current && ready && <primitive object={globeRef.current} />}</>
   );
 }
 
@@ -281,6 +375,10 @@ export function World(props: WorldProps) {
 }
 
 export function hexToRgb(hex: string) {
+  if (!hex || typeof hex !== "string") {
+    return null;
+  }
+
   var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
   hex = hex.replace(shorthandRegex, function (m, r, g, b) {
     return r + r + g + g + b + b;
@@ -297,7 +395,23 @@ export function hexToRgb(hex: string) {
 }
 
 export function genRandomNumbers(min: number, max: number, count: number) {
-  const arr = [];
+  // Ensure parameters are valid
+  min = Math.max(0, min);
+  max = Math.max(min + 1, max);
+  count = Math.min(max - min, count);
+
+  const arr: number[] = [];
+  if (count <= 0) return arr;
+
+  // If range is too small for requested count, return all numbers in range
+  if (max - min <= count) {
+    for (let i = min; i < max; i++) {
+      arr.push(i);
+    }
+    return arr;
+  }
+
+  // Generate random unique numbers
   while (arr.length < count) {
     const r = Math.floor(Math.random() * (max - min)) + min;
     if (arr.indexOf(r) === -1) arr.push(r);
