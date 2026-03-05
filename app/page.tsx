@@ -1,13 +1,9 @@
-"use client";
-
 import React from "react";
-import dynamic from "next/dynamic";
-const Hero = dynamic(() => import("@/components/Hero"), { ssr: false });
+export const dynamic = "force-dynamic";
+import Hero from "@/components/Hero";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import Grid from "@/components/Grid";
-const RecentProjects = dynamic(() => import("@/components/RecentProjects"), {
-  ssr: false,
-});
+import RecentProjects from "@/components/RecentProjects";
 import { navItems } from "@/data";
 import Clients from "@/components/Clients";
 import Experience from "@/components/Experience";
