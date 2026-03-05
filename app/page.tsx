@@ -1,8 +1,13 @@
+"use client";
+
 import React from "react";
-import Hero from "@/components/Hero";
+import dynamic from "next/dynamic";
+const Hero = dynamic(() => import("@/components/Hero"), { ssr: false });
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import Grid from "@/components/Grid";
-import RecentProjects from "@/components/RecentProjects";
+const RecentProjects = dynamic(() => import("@/components/RecentProjects"), {
+  ssr: false,
+});
 import { navItems } from "@/data";
 import Clients from "@/components/Clients";
 import Experience from "@/components/Experience";
