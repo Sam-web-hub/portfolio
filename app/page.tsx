@@ -1,4 +1,5 @@
 import React from "react";
+export const revalidate = 0;
 export const dynamic = "force-dynamic";
 import Hero from "@/components/Hero";
 import { FloatingNav } from "@/components/ui/FloatingNav";
