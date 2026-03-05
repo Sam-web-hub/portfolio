@@ -1,7 +1,15 @@
+"use client";
+
 import { projects } from "@/data";
 import React from "react";
 import { PinContainer } from "./ui/3d-pin";
 import { FaLocationArrow } from "react-icons/fa";
+import dynamic from "next/dynamic";
+
+const PinContainerDynamic = dynamic(
+  () => import("@/components/RecentProjects"),
+  { ssr: false },
+);
 
 export const RecentProjects = () => {
   return (
