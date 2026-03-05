@@ -4,12 +4,11 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { BackgroundGradientAnimation } from "./GradientBg";
 import { GlobeDemo } from "./GridGlobe";
-import dynamic from "next/dynamic";
+import Lottie from "lottie-react";
 import { useState } from "react";
 import animationData from "@/data/confetti.json";
 import { MagicButton } from "./MagicButton";
 import { IoCopyOutline } from "react-icons/io5";
-const Lottie = dynamic(() => import("react-lottie"), { ssr: false });
 
 export const BentoGrid = ({
   className,
@@ -124,7 +123,7 @@ export const BentoGridItem = ({
                 ].map((item) => (
                   <span
                     key={item}
-                    className="py-2 px-2 lg:py-3 lg:px-2 text-xs lg:text-base opacity-50 lg:opacity-100 rounded-lg text-center bg-[#10132E]"
+                    className="py-2 px-2 lg:py-3 lg:px-2 text-xs lg:text-base opacity-50 lg:opacity-100 rounded-lg text-center bg-P[#10132E]"
                   >
                     {item}
                   </span>
@@ -154,14 +153,10 @@ export const BentoGridItem = ({
             <div className="mt-5 relative">
               <div className={`absolute -bottom-5 right-0`}>
                 <Lottie
-                  options={{
-                    loop: copied,
-                    autoplay: copied,
-                    animationData,
-                    rendererSettings: {
-                      preserveAspectRatio: "xMidYMid slice",
-                    },
-                  }}
+                  animationData={animationData}
+                  loop={copied}
+                  autoplay={copied}
+                  style={{ width: "100%", height: "100%" }}
                 />
               </div>
               <MagicButton
